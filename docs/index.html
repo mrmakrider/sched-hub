@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Scheduler Hub</title>
+<style>
+  :root {
+    --bg:#0f1115; --card:#181b22; --line:#262b35; --fg:#e8eaf0;
+    --muted:#9aa3b2; --acc:#5b8cff; --ok:#37c985; --warn:#f2b84b; --bad:#f26d6d;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width:760px; margin:0 auto; padding:20px 16px 60px; }
+  header { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--muted); }
+  .dot.ok { background:var(--ok); }
+  h1 { font-size:20px; margin:0; }
+  .sub { color:var(--muted); font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:16px; margin:12px 0; }
+  h2 { font-size:14px; text-transform:uppercase; letter-spacing:.06em;
+       color:var(--muted); margin:0 0 10px; }
+  .row { display:flex; justify-content:space-between; gap:8px; padding:6px 0;
+         border-bottom:1px solid var(--line); font-size:14px; }
+  .row:last-child { border-bottom:0; }
+  .muted { color:var(--muted); }
+  .badge { font-size:12px; padding:2px 8px; border-radius:99px; }
+  .badge.on { background:rgba(55,201,133,.15); color:var(--ok); }
+  .badge.off { background:rgba(242,109,109,.15); color:var(--bad); }
+  .badge.due { background:rgba(242,184,75,.15); color:var(--warn); }
+  ul { margin:0; padding-left:18px; }
+  li { margin:4px 0; }
+  code { background:#0b0d12; border:1px solid var(--line); border-radius:6px;
+         padding:1px 6px; font-size:13px; }
+  footer { margin-top:22px; color:var(--muted); font-size:12.5px; }
+  .err { color:var(--warn); }
+  a { color:var(--acc); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="dot" id="hbdot"></span>
+    <div>
+      <h1>Agent Scheduler Hub</h1>
+      <div class="sub">AndroidHarness · scheduling-reminders</div>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>Status</h2>
+    <div class="row"><span class="muted">Runner heartbeat</span><span id="hb"></span></div>
+    <div class="row"><span class="muted">Snapshot generated</span><span id="gen"></span></div>
+    <div class="row"><span class="muted">Time zone</span><span id="tz"></span></div>
+  </div>
+
+  <div class="card">
+    <h2>Next runs</h2>
+    <div id="upcoming"></div>
+  </div>
+
+  <div class="card">
+    <h2>Jobs</h2>
+    <div id="jobs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Recent digest files</h2>
+    <div id="digests"></div>
+  </div>
+
+  <div class="card">
+    <h2>Recent events (log tail)</h2>
+    <div id="log"></div>
+  </div>
+
+  <footer>Fire-and-forget scheduler · data is a local snapshot updated on push.
+    Commands: pause → <code>touch agent/sched/PAUSE</code> ·
+    stop → <code>touch agent/sched/STOP</code> · restart → <code>sh agent/sched/bin/runner.sh 3600</code></footer>
+</div>
+
+<script>
+fetch("state.json")
+  .then(r => r.json())
+  .then(render)
+  .catch(e => {
+    document.querySelector(".wrap").insertAdjacentHTML("afterbegin",
+      '<div class="card err">Could not load state.json: ' + e + '</div>');
+  });
+
+function render(s) {
+  const age = s.heartbeat_age_s;
+  const hb = document.getElementById("hb");
+  const dot = document.getElementById("hbdot");
+  if (age === null) { hb.textContent = "no heartbeat"; dot.classList.remove("ok"); }
+  else if (age <= 90) { hb.textContent = "alive (" + age + "s)"; dot.classList.add("ok"); }
+  else { hb.textContent = "stale (" + age + "s)"; dot.classList.remove("ok"); }
+  document.getElementById("gen").textContent = s.generated_at || "—";
+  document.getElementById("tz").textContent = s.timezone || "UTC";
+
+  const up = document.getElementById("upcoming");
+  up.innerHTML = "";
+  const list = (s.upcoming || []).filter(x => !x.due).slice(0, 8);
+  if (!list.length) up.innerHTML = '<div class="row muted">none scheduled</div>';
+  list.forEach(x => {
+    const d = document.createElement("div");
+    d.className = "row";
+    d.innerHTML = '<span>' + x.id + '</span><span>' + x.local + '</span>';
+    up.appendChild(d);
+  });
+
+  const jc = document.getElementById("jobs");
+  jc.innerHTML = "";
+  (s.jobs || []).forEach(j => {
+    const d = document.createElement("div");
+    d.className = "row";
+    const on = j.enabled ? '<span class="badge on">enabled</span>'
+                         : '<span class="badge off">disabled</span>';
+    d.innerHTML = '<span><strong>' + (j.title || j.id) + '</strong> · ' +
+                 JSON.stringify(j.schedule || {}) + '</span>' + on;
+    jc.appendChild(d);
+  });
+
+  const dc = document.getElementById("digests");
+  dc.innerHTML = "";
+  (s.digest_files || []).slice().reverse().forEach(f => {
+    const d = document.createElement("div");
+    d.className = "row";
+    d.innerHTML = "<span>" + f + "</span>";
+    dc.appendChild(d);
+  });
+  if (!(s.digest_files || []).length) dc.innerHTML = '<div class="row muted">none</div>';
+
+  const lc = document.getElementById("log");
+  lc.innerHTML = "";
+  (s.log_tail || []).forEach(line => {
+    const d = document.createElement("div");
+    d.className = "row";
+    d.textContent = line.trim();
+    lc.appendChild(d);
+  });
+  if (!(s.log_tail || []).length) lc.innerHTML = '<div class="row muted">empty</div>';
+}
+</script>
+</body>
+</html>

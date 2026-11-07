@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-11-07T12:16:36+00:00",
+  "sched_home": "/storage/emulated/0/Android/data/com.androidharness.app/files/workspace/sched-hub/../agent/sched",
+  "jobs": [
+    {
+      "id": "daily-digest",
+      "title": "Daily football digest",
+      "schedule": {
+        "type": "daily",
+        "time": "03:00"
+      },
+      "enabled": true
+    }
+  ],
+  "upcoming": [
+    {
+      "epoch": 1793926800,
+      "id": "daily-digest",
+      "local": "2026-11-06 03:00 EET",
+      "due": true
+    },
+    {
+      "epoch": 1794013200,
+      "id": "daily-digest",
+      "local": "2026-11-07 03:00 EET",
+      "due": true
+    },
+    {
+      "epoch": 1794099600,
+      "id": "daily-digest",
+      "local": "2026-11-08 03:00 EET",
+      "due": false
+    },
+    {
+      "epoch": 1794186000,
+      "id": "daily-digest",
+      "local": "2026-11-09 03:00 EET",
+      "due": false
+    }
+  ],
+  "log_tail": [
+    "2026-11-07T14:59:12+0300 INFO runner start pid=15192 max=150s\n",
+    "2026-11-07T15:04:19+0300 WARN stale lock (hb=1794052752), taking over\n",
+    "2026-11-07T15:04:19+0300 INFO runner start pid=17538 max=3600s\n",
+    "2026-11-07T15:04:20+0300 INFO shell daily-digest@1793926800 rc=0\n",
+    "2026-11-07T15:04:20+0300 INFO fired smoke-test@1794052865 kind=notify late=195s\n",
+    "2026-11-07T15:05:05+0300 INFO runner start pid=17786 max=150s\n",
+    "2026-11-07T15:05:44+0300 INFO STOP flag, exiting\n",
+    "2026-11-07T15:06:10+0300 INFO runner start pid=18898 max=3600s\n"
+  ],
+  "digest_files": [
+    "football_summary_20261027.html",
+    "football_summary_20261028.html",
+    "football_summary_20261029.html",
+    "football_summary_20261030.html",
+    "football_summary_20261107.html"
+  ],
+  "timezone": "Africa/Cairo",
+  "heartbeat_age_s": 14
+}

@@ -1,0 +1,13 @@
+version: 1
+timezone: Africa/Cairo
+defaults: { grace_minutes: 120, catchup: skip }
+jobs:
+  - id: daily-digest
+    title: Daily football digest
+    enabled: true
+    schedule: { type: daily, time: "03:00" }
+    catchup: run
+    grace_minutes: 600
+    action:
+      type: shell
+      cmd: "cd /storage/emulated/0/Android/data/com.androidharness.app/files/workspace/football && python3 generate_summary.py --out ../summaries && echo \"digest ready $(date +%F)\" > /storage/emulated/0/Android/data/com.androidharness.app/files/workspace/agent/sched/outbox/digest_ready.txt"
